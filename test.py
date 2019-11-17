@@ -98,12 +98,12 @@ class function():
         self.pid_angle.setSetPoint(0)
         self.pid_bottom_x.setSetPoint(160)
         self.pid_bottom_y.setSetPoint(120)
-    def set_arrow(self, v, depth):
+    def set_arrow(self, v, depth, hsv):
         mur = self.mur
         res = self.res
         from time import sleep
         while True:
-            data = v.arrow(mur.get_image_bottom())
+            data = v.arrow(mur.get_image_bottom(), hsv)
             if data is None:
                 self.mur.set_motor_power(0, 0)
                 self.mur.set_motor_power(1, 0)
@@ -182,29 +182,7 @@ class vision():
         self.np = numpy
         
         '''
-        def nothing(self):
-            pass
-        window_name = "track_img"
-        cv.namedWindow(window_name)
         
-        cv.createTrackbar('UH',window_name,0,255,nothing)
-        cv.setTrackbarPos('UH',window_name, 255)
-
-        cv.createTrackbar('US',window_name,0,255,nothing)
-        cv.setTrackbarPos('US',window_name, 255)
-
-        cv.createTrackbar('UV',window_name,0,255,nothing)
-        cv.setTrackbarPos('UV',window_name, 255)
-
-        # create trackbars for Lower HSV
-        cv.createTrackbar('LH',window_name,0,255,nothing)
-        cv.setTrackbarPos('LH',window_name, 0)
-
-        cv.createTrackbar('LS',window_name,0,255,nothing)
-        cv.setTrackbarPos('LS',window_name, 0)
-
-        cv.createTrackbar('LV',window_name,0,255,nothing)
-        cv.setTrackbarPos('LV',window_name, 0)
         '''
     '''
     def detect_red_objects(self, image):
@@ -291,14 +269,14 @@ class vision():
             bEllipse = map(int, bEllipse)
             return len(hull)
         return None
-    def arrow(self, image):
+    def arrow(self, image, hsv):
         np = self.np
         cv = self.cv
-        orange_l = self.np.array([16, 141, 0])
-        orange_u = self.np.array([23, 255, 208])
+        hsv_l = hsv[0]
+        hsv_u = hsv[1]
         img = cv.GaussianBlur(image, (5,5), cv.BORDER_DEFAULT)
         img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-        mask = cv.inRange(img_hsv, orange_l, orange_u)
+        mask = cv.inRange(img_hsv, hsv_l, hsv_u)
         contours, hierarchy = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         cv.imshow("Mask", mask)
         cv.waitKey(1)
@@ -323,9 +301,34 @@ class vision():
                 ang += 360
             return cnt_center, ang
         
-    def track(self, image):
-        np = self.np
-        cv = self.cv
+def track(mur, f):
+    global cv
+    def nothing(self):
+        pass
+    window_name = "track_img"
+    cv.namedWindow(window_name)
+    
+    cv.createTrackbar('UH',window_name,0,255,nothing)
+    cv.setTrackbarPos('UH',window_name, 255)
+
+    cv.createTrackbar('US',window_name,0,255,nothing)
+    cv.setTrackbarPos('US',window_name, 255)
+
+    cv.createTrackbar('UV',window_name,0,255,nothing)
+    cv.setTrackbarPos('UV',window_name, 255)
+
+    # create trackbars for Lower HSV
+    cv.createTrackbar('LH',window_name,0,255,nothing)
+    cv.setTrackbarPos('LH',window_name, 0)
+
+    cv.createTrackbar('LS',window_name,0,255,nothing)
+    cv.setTrackbarPos('LS',window_name, 0)
+
+    cv.createTrackbar('LV',window_name,0,255,nothing)
+    cv.setTrackbarPos('LV',window_name, 0)
+    while True:
+        image = mur.get_image_bottom()
+        f.keep_depth(-2.5)
         window_name = "track_img"
         uh = cv.getTrackbarPos('UH',window_name)
         us = cv.getTrackbarPos('US',window_name)
@@ -342,20 +345,28 @@ class vision():
         mask = cv.inRange(hsv, lower_hsv, upper_hsv)
         cv.imshow("HSV", mask)
         cv.waitKey(5)
-    
+
 
 if __name__ == '__main__':
     from time import sleep
     from sys import exit
+    import numpy as np
+    orange = (np.array([16, 141, 0]), np.array([23, 255, 208]))
+    brown = (np.array([7, 42, 130]), np.array([14, 255, 209]))
+    green = (np.array([67, 58, 123]), np.array([83, 255, 211]))
+    blue = (np.array([128, 86, 123]), np.array([135, 255, 229]))
     mur = pymurapi.mur_init()
     f = function(mur)
     v = vision(cv)
+    #track(mur, f)
+    
     f.set(0, -2.5, 30)
     while True:
         f.keep_depth(-2.5)
         f.keep_angle(0)
-        if not v.arrow(mur.get_image_bottom()) is None:
-            while f.set_arrow(v, -2.5) == -1:
+        if not v.arrow(mur.get_image_bottom(), green) is None:
+            while f.set_arrow(v, -2.5, green) == -1:
                 pass
             f.set(mur.get_yaw(), -0.5)
             break
+    
