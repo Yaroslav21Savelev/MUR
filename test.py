@@ -102,6 +102,7 @@ class function():
         mur = self.mur
         res = self.res
         from time import sleep
+        offset_timer = self.time()
         while True:
             data = v.arrow(mur.get_image_bottom(), hsv)
             if data is None:
@@ -110,7 +111,7 @@ class function():
                 self.mur.set_motor_power(2, 0)
                 self.mur.set_motor_power(3, 0)
                 self.mur.set_motor_power(4, 0)
-                return None
+                return -1
             pos, ang = data
             x_power = int(self.pid_bottom_x.update(pos[0]))
             y_power = int(self.pid_bottom_y.update(pos[1]))
@@ -121,7 +122,71 @@ class function():
             self.mur.set_motor_power(4, x_power)
             self.keep_depth(depth)
             sleep(0.1)
-            if abs(pos[0] - 160) <= 5 and  abs(pos[1] - 120) <= 5 and abs(ang) <= 3 and abs(self.mur.get_depth() + depth) <= 0.05:
+            if abs(pos[0] - 160) > 5 or abs(pos[1] - 120) > 5 or abs(ang) > 3 or abs(self.mur.get_depth() + depth) > 0.05:
+                    offset_timer = self.time()
+            if self.time() - offset_timer >= 1:
+                self.mur.set_motor_power(0, 0)
+                self.mur.set_motor_power(1, 0)
+                self.mur.set_motor_power(2, 0)
+                self.mur.set_motor_power(3, 0)
+                self.mur.set_motor_power(4, 0)
+                return 0
+    def set_obj(self, v, depth, hsv):
+        mur = self.mur
+        res = self.res
+        offset_timer = self.time()
+        from time import sleep
+        while True:
+            pos = v.obj(mur.get_image_bottom(), hsv)
+            if pos is None:
+                self.mur.set_motor_power(0, 0)
+                self.mur.set_motor_power(1, 0)
+                self.mur.set_motor_power(2, 0)
+                self.mur.set_motor_power(3, 0)
+                self.mur.set_motor_power(4, 0)
+                return -1
+            x_power = int(self.pid_bottom_x.update(pos[0]))
+            y_power = int(self.pid_bottom_y.update(pos[1]))
+            #print(pos, ang)
+            self.mur.set_motor_power(0, y_power)
+            self.mur.set_motor_power(1, y_power)
+            self.mur.set_motor_power(4, x_power)
+            self.keep_depth(depth)
+            sleep(0.1)
+            if abs(pos[0] - 160) > 5 or abs(pos[1] - 120) > 5 or abs(self.mur.get_depth() + depth) > 0.05:
+                    offset_timer = self.time()
+            if self.time() - offset_timer >= 1:
+                self.mur.set_motor_power(0, 0)
+                self.mur.set_motor_power(1, 0)
+                self.mur.set_motor_power(2, 0)
+                self.mur.set_motor_power(3, 0)
+                self.mur.set_motor_power(4, 0)
+                return 0
+    def set_stand(self, v, depth, hsv):
+        mur = self.mur
+        res = self.res
+        offset_timer = self.time()
+        from time import sleep
+        while True:
+            pos = v.stand(mur.get_image_bottom(), hsv)
+            if pos is None:
+                self.mur.set_motor_power(0, 0)
+                self.mur.set_motor_power(1, 0)
+                self.mur.set_motor_power(2, 0)
+                self.mur.set_motor_power(3, 0)
+                self.mur.set_motor_power(4, 0)
+                return -1
+            x_power = int(self.pid_bottom_x.update(pos[0]))
+            y_power = int(self.pid_bottom_y.update(pos[1]))
+            #print(pos, ang)
+            self.mur.set_motor_power(0, y_power)
+            self.mur.set_motor_power(1, y_power)
+            self.mur.set_motor_power(4, x_power)
+            self.keep_depth(depth)
+            sleep(0.1)
+            if abs(pos[0] - 160) > 5 or abs(pos[1] - 120) > 5 or abs(self.mur.get_depth() + depth) > 0.05:
+                    offset_timer = self.time()
+            if self.time() - offset_timer >= 1:
                 self.mur.set_motor_power(0, 0)
                 self.mur.set_motor_power(1, 0)
                 self.mur.set_motor_power(2, 0)
@@ -132,7 +197,7 @@ class function():
         if target is None:
             self.mur.set_motor_power(2, 0)
             self.mur.set_motor_power(3, 0)
-        if (self.time() - self.depth_timer) >= 0.2:
+        elif (self.time() - self.depth_timer) >= 0.2:
             out = -int(self.pid_depth.update(self.mur.get_depth() + target))
             '''
             if out >= 0:
@@ -147,7 +212,7 @@ class function():
         if target is None:
             self.mur.set_motor_power(0, 0)
             self.mur.set_motor_power(1, 0)
-        if (self.time() - self.angle_timer) >= 0.2 and (not self.angle is None):
+        elif (self.time() - self.angle_timer) >= 0.2 and (not self.angle is None):
             angle_l = rotate(mur.get_yaw() - target)
             out = int(self.pid_angle.update(angle_l))
             #print(out)
@@ -157,8 +222,6 @@ class function():
     def set(self, angle = None, depth = None, speed = 0):
         offset_timer = self.time()
         self.speed = 0
-        self.angle = angle
-        self.depth = depth
         from time import sleep
         while True:
             if not depth is None:
@@ -274,7 +337,8 @@ class vision():
         cv = self.cv
         hsv_l = hsv[0]
         hsv_u = hsv[1]
-        img = cv.GaussianBlur(image, (5,5), cv.BORDER_DEFAULT)
+        img = image.copy()
+        img = cv.GaussianBlur(img, (5,5), cv.BORDER_DEFAULT)
         img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
         mask = cv.inRange(img_hsv, hsv_l, hsv_u)
         contours, hierarchy = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -300,7 +364,69 @@ class vision():
             if ang < -180:
                 ang += 360
             return cnt_center, ang
-        
+    def stand(self, image, hsv):
+        from math import pi
+        np = self.np
+        cv = self.cv
+        hsv_l = hsv[0]
+        hsv_u = hsv[1]
+        img = image.copy()
+        img = cv.GaussianBlur(img, (5,5), cv.BORDER_DEFAULT)
+        img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+        mask = cv.inRange(img_hsv, hsv_l, hsv_u)
+        contours, hierarchy = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        cv.imshow("Mask", mask)
+        cv.waitKey(1)
+        for cnt in contours:
+            # find circle center
+            (x,y),radius = cv.minEnclosingCircle(cnt)
+            circle_center = (x, y)
+            area = cv.contourArea(cnt)
+            #cv.circle(img, circle_center, int(radius), (128, 0, 128), 3)
+            if area != 0:
+                if radius * (pi ** 2) / area <= 0.15:
+                    return circle_center
+                #print(circle_center)
+        #cv.imshow("Img", img)
+        #cv.waitKey(1)
+    def obj(self, image, hsv):
+        from math import pi
+        np = self.np
+        cv = self.cv
+        hsv_l = hsv[0]
+        hsv_u = hsv[1]
+        img = image.copy()
+        img = cv.GaussianBlur(img, (5,5), cv.BORDER_DEFAULT)
+        img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+        mask = cv.inRange(img_hsv, hsv_l, hsv_u)
+        contours, hierarchy = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        cv.imshow("Mask", mask)
+        cv.waitKey(1)
+        for cnt in contours:
+            # find countour center
+            M = cv.moments(cnt)
+            #print("M", M["m00"])
+            if M["m00"] <= 200:
+                continue
+            x = M["m10"] / M["m00"]
+            y = M["m01"] / M["m00"]
+            cnt_center = (int(x), int(y))
+            area = cv.contourArea(cnt)
+            #cv.circle(img, circle_center, int(radius), (128, 0, 128), 3)
+            #box_area = int(box[1][0]*box[1][1])
+            #print(int(M["m10"]), int(M["m00"]))
+            #print(box)
+            #cv.line(img, , 0, (255, 128, 128), 2)
+            ##print(box_area / area, "f")
+            #cv.drawContours(img,[box],0,(255,0,0),2) # рисуем прямоугольник
+            cv.circle(img, cnt_center, 5, (255, 128, 128), 2)
+            #print(area)
+            cv.imshow("Img", img)
+            cv.waitKey(1)
+            if area >= 1000:
+                return x, y
+        #cv.imshow("Img", img)
+        #cv.waitKey(1)
 def track(mur, f):
     global cv
     def nothing(self):
@@ -369,26 +495,108 @@ if __name__ == '__main__':
     red = (np.array([7, 42, 130]), np.array([14, 255, 209]))
     green = (np.array([67, 58, 123]), np.array([83, 255, 211]))
     blue = (np.array([128, 86, 123]), np.array([135, 255, 229]))
-    yellow = (np.array([25, 0, 140]), np.array([35, 255, 205]))
+    yellow = (np.array([23, 157, 128]), np.array([56, 255, 192]))
     # r, g, b, y
+    def get_color(index):
+        if index == 0:
+            return red
+        if index == 1:
+            return green
+        if index == 2:
+            return blue
+        if index == 3:
+            return yellow
     position = []
+    p = 0
     mur = pymurapi.mur_init()
     f = function(mur)
     v = vision(cv)
     #track(mur, f)
-    
-    f.set(0, -2.5, 30)
+    #print(dir(mur))
+    '''
     while True:
-        f.keep_depth(-2.5)
-        f.keep_angle(0)
-        if not v.arrow(mur.get_image_bottom(), orange) is None:
-            
+        f.keep_depth(-3.2)
+        print(v.obj(mur.get_image_bottom(), yellow))
+    '''
+    f.set(0, -2.5, 30)
+    ang = 0
+    color = None
+    while True:
+        if p == 0:
+            f.keep_depth(-2.5)
+            f.keep_angle(0)
+            if not v.arrow(mur.get_image_bottom(), orange) is None:
+                
+                while f.set_arrow(v, -3, orange) == -1:
+                    pass
+                '''
+                for color in (red, green, blue, yellow):
+                    while v.arrow(mur.get_image_bottom(), color) is None:
+                        pass
+                    position.append(quarter(v.arrow(mur.get_image_bottom(), color)[1]))
+                print(position)
+                '''
+                p += 1
+        #red
+        elif p == 1:
+            while f.set_arrow(v, -2.5, red) == -1:
+                pass
+            ang = mur.get_yaw()
+            print(ang)
+            f.set(ang, -2.5, 20)
+            while True:
+                f.keep_depth(-2.5)
+                f.keep_angle(ang)
+                if v.stand(mur.get_image_bottom(), red):
+                    while f.set_stand(v, -2.5, red) == -1:
+                        pass
+                    f.set(mur.get_yaw(), -3.2)
+                    mur.open_grabber()
+                    
+                    p += 1
+                    break
+        elif p == 2:
+            color_cube = None
+            print("mode_10")
+            while color_cube is None:
+                for i in (green, blue, yellow):
+                    pos = v.obj(mur.get_image_bottom(), i)
+                    if not pos is None:
+                        color_cube = i
+            while f.set_obj(v, -3, color_cube) == -1:
+                print("d")
+                pass
+            print("mode_11")
+            f.set(mur.get_yaw(), -3.6)
+            mur.set_motor_power(0, -10)
+            mur.set_motor_power(1, -10)
+            time.sleep(0.5)
+            mur.close_grabber()
+            sleep(2)
+            f.set(depth = -2.5)
+            print("mode_12")
             while f.set_arrow(v, -2.5, orange) == -1:
                 pass
-            
-            for color in (red, green, blue, yellow):
-                while v.arrow(mur.get_image_bottom(), color) is None:
-                    pass
-                position.append(quarter(v.arrow(mur.get_image_bottom(), color)[1]))
-            print(position)
-            exit(0)
+            print("mode_13")
+            ang = mur.get_yaw()
+            print(ang)
+            f.set(ang, -2.5, 20)
+            timer = time()
+            while time.time() - timer <= 5:
+                f.keep_depth(-2.5)
+                f.keep_angle(ang)
+            print("mode_14")
+            p += 1
+        elif p == 3:
+            while True:
+                f.keep_depth(-2.5)
+                f.keep_angle(ang)
+                
+                if not v.arrow(mur.get_image_bottom(), red) is None:
+                    while f.set_arrow(v, -3.3, red) == -1:
+                        pass
+                    break
+            mur.open_grabber()
+            f.set(0, -2.5)
+            pos += 1
+
