@@ -346,15 +346,32 @@ def track(mur, f):
         cv.imshow("HSV", mask)
         cv.waitKey(5)
 
-
+def quarter(ang):
+    '''
+    1   2
+      r
+    3   4
+    '''
+    if ang >= -90 and ang < 0:
+        return 1
+    elif ang >= 0 and ang < 90:
+        return 2
+    elif ang >= -180 and ang < -90:
+        return 3
+    elif ang >= 90 and ang <= 180:
+        return 4
+    
 if __name__ == '__main__':
     from time import sleep
     from sys import exit
     import numpy as np
     orange = (np.array([16, 141, 0]), np.array([23, 255, 208]))
-    brown = (np.array([7, 42, 130]), np.array([14, 255, 209]))
+    red = (np.array([7, 42, 130]), np.array([14, 255, 209]))
     green = (np.array([67, 58, 123]), np.array([83, 255, 211]))
     blue = (np.array([128, 86, 123]), np.array([135, 255, 229]))
+    yellow = (np.array([25, 0, 140]), np.array([35, 255, 205]))
+    # r, g, b, y
+    position = []
     mur = pymurapi.mur_init()
     f = function(mur)
     v = vision(cv)
@@ -364,9 +381,14 @@ if __name__ == '__main__':
     while True:
         f.keep_depth(-2.5)
         f.keep_angle(0)
-        if not v.arrow(mur.get_image_bottom(), green) is None:
-            while f.set_arrow(v, -2.5, green) == -1:
+        if not v.arrow(mur.get_image_bottom(), orange) is None:
+            
+            while f.set_arrow(v, -2.5, orange) == -1:
                 pass
-            f.set(mur.get_yaw(), -0.5)
-            break
-    
+            
+            for color in (red, green, blue, yellow):
+                while v.arrow(mur.get_image_bottom(), color) is None:
+                    pass
+                position.append(quarter(v.arrow(mur.get_image_bottom(), color)[1]))
+            print(position)
+            exit(0)
