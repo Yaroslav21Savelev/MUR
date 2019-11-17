@@ -153,7 +153,7 @@ class function():
             self.mur.set_motor_power(4, x_power)
             self.keep_depth(depth)
             sleep(0.1)
-            if abs(pos[0] - 160) > 5 or abs(pos[1] - 120) > 5 or abs(self.mur.get_depth() + depth) > 0.05:
+            if abs(pos[0] - 160) > 7 or abs(pos[1] - 120) > 7 or abs(self.mur.get_depth() + depth) > 0.05:
                     offset_timer = self.time()
             if self.time() - offset_timer >= 1:
                 self.mur.set_motor_power(0, 0)
@@ -184,7 +184,7 @@ class function():
             self.mur.set_motor_power(4, x_power)
             self.keep_depth(depth)
             sleep(0.1)
-            if abs(pos[0] - 160) > 5 or abs(pos[1] - 120) > 5 or abs(self.mur.get_depth() + depth) > 0.05:
+            if abs(pos[0] - 160) > 7 or abs(pos[1] - 120) > 7 or abs(self.mur.get_depth() + depth) > 0.05:
                     offset_timer = self.time()
             if self.time() - offset_timer >= 1:
                 self.mur.set_motor_power(0, 0)
@@ -581,7 +581,7 @@ if __name__ == '__main__':
             ang = mur.get_yaw()
             print(ang)
             f.set(ang, -2.5, 20)
-            timer = time()
+            timer = time.time()
             while time.time() - timer <= 5:
                 f.keep_depth(-2.5)
                 f.keep_angle(ang)
@@ -593,10 +593,14 @@ if __name__ == '__main__':
                 f.keep_angle(ang)
                 
                 if not v.arrow(mur.get_image_bottom(), red) is None:
-                    while f.set_arrow(v, -3.3, red) == -1:
+                    while f.set_arrow(v, -3, red) == -1:
                         pass
                     break
             mur.open_grabber()
             f.set(0, -2.5)
-            pos += 1
+            while f.set_arrow(v, -2.5, orange) == -1:
+                pass
+            p += 1
+        elif p == 4:
+            exit(0)
 
