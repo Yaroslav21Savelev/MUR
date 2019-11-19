@@ -93,8 +93,8 @@ class function():
         self.angle_timer = self.time()
         self.pid_depth = PID(50, 0, 50)
         self.pid_angle = PID(0.55, 0, 0.3)
-        self.pid_bottom_x = PID(0.5, 0.3, 0.3)
-        self.pid_bottom_y = PID(0.47, 0.3, 0.3)
+        self.pid_bottom_x = PID(0.33, 0.3, 0.3)
+        self.pid_bottom_y = PID(0.3, 0.3, 0.3)
         self.pid_angle.setSetPoint(0)
         self.pid_bottom_x.setSetPoint(160)
         self.pid_bottom_y.setSetPoint(120)
@@ -120,7 +120,7 @@ class function():
             sleep(0.1)
             if abs(pos[0] - 160) > 10 or abs(pos[1] - 120) > 10 or abs(ang) > 3 or abs(self.mur.get_depth() + depth) > 0.05:
                     offset_timer = self.time()
-            if self.time() - offset_timer >= 0.4:
+            if self.time() - offset_timer >= 1.2:
                 self.mur.set_motor_power(0, 0)
                 self.mur.set_motor_power(1, 0)
                 self.mur.set_motor_power(2, 0)
@@ -135,11 +135,6 @@ class function():
         while True:
             pos = v.obj(mur.get_image_bottom(), hsv)
             if pos is None:
-                self.mur.set_motor_power(0, 0)
-                self.mur.set_motor_power(1, 0)
-                self.mur.set_motor_power(2, 0)
-                self.mur.set_motor_power(3, 0)
-                self.mur.set_motor_power(4, 0)
                 return -1
             x_power = int(self.pid_bottom_x.update(pos[0]))
             y_power = int(self.pid_bottom_y.update(pos[1]))
@@ -182,7 +177,7 @@ class function():
             sleep(0.1)
             if abs(pos[0] - 160) > 7 or abs(pos[1] - 120) > 7 or abs(self.mur.get_depth() + depth) > 0.05:
                     offset_timer = self.time()
-            if self.time() - offset_timer >= 1.5:
+            if self.time() - offset_timer >= 1:
                 self.mur.set_motor_power(0, 0)
                 self.mur.set_motor_power(1, 0)
                 self.mur.set_motor_power(2, 0)
@@ -335,7 +330,7 @@ class vision():
         hsv_l = hsv[0]
         hsv_u = hsv[1]
         img = image.copy()
-        img = cv.GaussianBlur(img, (5,5), cv.BORDER_DEFAULT)
+        img = cv.GaussianBlur(img, (5, 5), cv.BORDER_DEFAULT)
         img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
         mask = cv.inRange(img_hsv, hsv_l, hsv_u)
         contours, hierarchy = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -368,7 +363,7 @@ class vision():
         hsv_l = hsv[0]
         hsv_u = hsv[1]
         img = image.copy()
-        img = cv.GaussianBlur(img, (5,5), cv.BORDER_DEFAULT)
+        img = cv.GaussianBlur(img, (5, 5), cv.BORDER_DEFAULT)
         img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
         mask = cv.inRange(img_hsv, hsv_l, hsv_u)
         contours, hierarchy = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -393,7 +388,7 @@ class vision():
         hsv_l = hsv[0]
         hsv_u = hsv[1]
         img = image.copy()
-        img = cv.GaussianBlur(img, (5,5), cv.BORDER_DEFAULT)
+        img = cv.GaussianBlur(img, (5, 5), cv.BORDER_DEFAULT)
         img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
         mask = cv.inRange(img_hsv, hsv_l, hsv_u)
         contours, hierarchy = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -488,6 +483,7 @@ def get_angle(quarter):
     return arr[quarter]
 
 if __name__ == '__main__':
+    start_time = time.time()
     from time import sleep
     from sys import exit
     import numpy as np
@@ -497,8 +493,8 @@ if __name__ == '__main__':
     blue = (np.array([128, 86, 0]), np.array([135, 255, 255]))
     yellow = (np.array([23, 95, 0]), np.array([56, 255, 255]))
     catch_time = 1
-    ret_time = 10
-    a_height = -3.1
+    ret_time = 9
+    a_height = -3.3
     # r, g, b, y
     def get_color(index):
         if index == 0:
@@ -527,23 +523,23 @@ if __name__ == '__main__':
         cv.imshow("", img)
         cv.waitKey(1)
     '''
+    colors = (red, green, blue, yellow)
+    scan_cubes = ((green, blue, yellow), (red, blue, yellow), (red,
+                                                                             green, yellow), (red, green, blue))
+    
     f.set(0, -2.5)
     ang = 0
     color_cube = None
     while True:
 
         if p == 2:
-            '''
-            while f.set_arrow(v, -2.5, orange) == -1:
-                pass
-            ang = mur.get_yaw()
-            '''
             ang = 0
-            f.set(ang, -2.5, 40)
+            f.set(ang, -2.5, 60)
             p += 1
         elif p == 3:
             timer = time.time()
             while time.time() - timer <= 5:
+                v.arrow(mur.get_image_bottom(), orange)
                 f.keep_depth(-2.5)
                 f.keep_angle(ang)
             while f.set_arrow(v, -3, orange) == -1:
@@ -556,233 +552,119 @@ if __name__ == '__main__':
                     f.keep_angle(ang)
                 position.append(quarter(v.arrow(mur.get_image_bottom(), color)[1]))
             print(position)
-            p += 1
-        #red
-        elif p == 4:
-            ang = get_angle(position[0])
-            f.set(ang, -2.5, 30)
-            while True:
-                f.keep_depth(-2.5)
-                f.keep_angle(ang)
-                if v.stand(mur.get_image_bottom(), red):
-                    while f.set_stand(v, -2.7, red) == -1:
-                        pass
-                    f.set(mur.get_yaw(), -3.2)
-                    mur.open_grabber()
+            break
+    for now in range(4):
+        p = 0
+        while True:
+            if p == 0:
+                ang = get_angle(position[now])
+                f.set(ang, -2.5, 35)
+                while True:
+                    f.keep_depth(-2.5)
+                    f.keep_angle(ang)
+                    if v.stand(mur.get_image_bottom(), colors[now]):
+                        while f.set_stand(v, -2.8, colors[now]) == -1:
+                            pass
+                        f.set(depth = -3.2)
+                        mur.open_grabber()
+                        
+                        p += 1
+                        break
+            elif p == 1:
+                color_cube = None
+                #print("mode_10")
+                while color_cube is None:
+                    for i in scan_cubes[now]:
+                        pos = v.obj(mur.get_image_bottom(), i)
+                        if not pos is None:
+                            color_cube = i
+                            cubes.append(color_cube)
+                while f.set_obj(v, -3.2, color_cube) == -1:
+                    pass
+                #print("mode_11")
+                f.set(mur.get_yaw(), -3.6)
+                mur.set_motor_power(0, -5)
+                mur.set_motor_power(1, -5)
+                time.sleep(0.7)
+                mur.close_grabber()
+                sleep(catch_time)
+                ang = rotate(get_angle(position[now]) - 180)
+                f.set(ang, -2.7, 25)
+                timer = time.time()
+                while time.time() - timer <= ret_time:
+                    v.arrow(mur.get_image_bottom(), color_cube)
+                    f.keep_depth(-2.7)
+                    f.keep_angle(ang)
+                #print("mode_14")
+                p += 1
+            elif p == 2:
+                while True:
+                    f.keep_depth(-2.7)
+                    f.keep_angle(ang)
                     
-                    p += 1
-                    break
-        elif p == 5:
-            color_cube = None
-            print("mode_10")
-            while color_cube is None:
-                for i in (green, blue, yellow):
-                    pos = v.obj(mur.get_image_bottom(), i)
-                    if not pos is None:
-                        color_cube = i
-                        cubes.append(color_cube)
-            while f.set_obj(v, -3, color_cube) == -1:
-                pass
-            print("mode_11")
-            f.set(mur.get_yaw(), -3.6)
-            mur.set_motor_power(0, -5)
-            mur.set_motor_power(1, -5)
-            time.sleep(0.5)
+                    if not v.arrow(mur.get_image_bottom(), color_cube) is None:
+                        while f.set_arrow(v, a_height, color_cube) == -1:
+                            f.keep_depth(-2.7)
+                            f.keep_angle(ang)
+                        break
+                mur.open_grabber()
+                sleep(1)
+                f.set(0, -2.8)
+                while f.set_arrow(v, -2.8, orange) == -1:
+                    pass
+                mur.open_grabber()
+                print(cubes)
+                break
+    
+    #ang = 0
+    for now in range(4):
+        p = 0
+        if p == 0:
+            while f.set_obj(v, -3.3, colors[now]) == -1:
+                f.keep_depth(-2.7)
+                f.keep_angle(ang)
+            f.set(depth=-3.7)
             mur.close_grabber()
-            sleep(catch_time)
-            ang = rotate(get_angle(position[0]) - 180)
-            f.set(ang, -2.5, 15)
-            timer = time.time()
-            while time.time() - timer <= ret_time:
-                f.keep_depth(-2.5)
-                f.keep_angle(ang)
-            print("mode_14")
-            p += 1
-        elif p == 6:
-            while True:
-                f.keep_depth(-2.5)
-                f.keep_angle(ang)
-                
-                if not v.arrow(mur.get_image_bottom(), color_cube) is None:
-                    while f.set_arrow(v, a_height, color_cube) == -1:
-                        f.keep_depth(-2.5)
-                        f.keep_angle(ang)
-                    break
-            mur.open_grabber()
             sleep(1)
-            f.set(0, -2.5)
-            while f.set_arrow(v, -2.5, orange) == -1:
+            f.set(0, -2.8)
+            while f.set_arrow(v, -2.8, orange) == -1:
                 pass
-            print(cubes)
             p += 1
-        # green
-        elif p == 7:
-            ang = get_angle(position[1])
-            f.set(ang, -2.5, 30)
+        if p == 1:
+            ang = get_angle(position[now])
+            f.set(ang, -2.5, 35)
+            timer = time.time()
+            while time.time() - timer <= 7:
+                v.arrow(mur.get_image_bottom(), orange)
+                f.keep_depth(-2.5)
+                f.keep_angle(ang)
             while True:
                 f.keep_depth(-2.5)
                 f.keep_angle(ang)
-                if v.stand(mur.get_image_bottom(), green):
-                    while f.set_stand(v, -2.7, green) == -1:
+                if v.stand(mur.get_image_bottom(), colors[now]):
+                    while f.set_stand(v, -2.8, colors[now]) == -1:
                         pass
-                    f.set(mur.get_yaw(), -3.2)
+                    f.set(depth=-3.2)
                     mur.open_grabber()
+                    sleep(1)
                     p += 1
                     break
-        elif p == 8:
-            color_cube = None
-            print("mode_10")
-            while color_cube is None:
-                for i in (red, blue, yellow):
-                    pos = v.obj(mur.get_image_bottom(), i)
-                    if not pos is None:
-                        color_cube = i
-                        cubes.append(color_cube)
-            while f.set_obj(v, -3, color_cube) == -1:
-                pass
-            print("mode_11")
-            f.set(mur.get_yaw(), -3.6)
-            mur.set_motor_power(0, -5)
-            mur.set_motor_power(1, -5)
-            time.sleep(0.5)
-            mur.close_grabber()
-            sleep(catch_time)
-            ang = rotate(get_angle(position[1]) - 180)
-            f.set(ang, -2.5, 15)
+        if p == 2:
+            ang = rotate(get_angle(position[now]) - 180)
+            f.set(ang, -2.7, 25)
             timer = time.time()
-            while time.time() - timer <= ret_time:
-                f.keep_depth(-2.5)
+            while time.time() - timer <= 7:
+                v.arrow(mur.get_image_bottom(), orange)
+                f.keep_depth(-2.7)
                 f.keep_angle(ang)
-            print("mode_14")
-            p += 1
-        elif p == 9:
-            while True:
-                f.keep_depth(-2.5)
-                f.keep_angle(ang)
-                
-                if not v.arrow(mur.get_image_bottom(), color_cube) is None:
-                    while f.set_arrow(v, a_height, color_cube) == -1:
-                        f.keep_depth(-2.5)
-                        f.keep_angle(ang)
-                    break
-            mur.open_grabber()
-            sleep(1)
-            f.set(0, -2.5)
-            while f.set_arrow(v, -2.5, orange) == -1:
-                pass
-            print(cubes)
-            p += 1
-        # blue
-        elif p == 10:
-            ang = get_angle(position[2])
-            f.set(ang, -2.5, 30)
-            while True:
-                f.keep_depth(-2.5)
-                f.keep_angle(ang)
-                if v.stand(mur.get_image_bottom(), blue):
-                    while f.set_stand(v, -2.7, blue) == -1:
-                        pass
-                    f.set(mur.get_yaw(), -3.2)
-                    mur.open_grabber()
-                    p += 1
-                    break
-        elif p == 11:
-            color_cube = None
-            print("mode_10")
-            while color_cube is None:
-                for i in (red, green, yellow):
-                    pos = v.obj(mur.get_image_bottom(), i)
-                    if not pos is None:
-                        color_cube = i
-                        cubes.append(color_cube)
-            while f.set_obj(v, -3, color_cube) == -1:
-                pass
-            print("mode_11")
-            f.set(mur.get_yaw(), -3.6)
-            mur.set_motor_power(0, -5)
-            mur.set_motor_power(1, -5)
-            time.sleep(0.5)
-            mur.close_grabber()
-            sleep(catch_time)
-            ang = rotate(get_angle(position[2]) - 180)
-            f.set(ang, -2.5, 15)
-            timer = time.time()
-            while time.time() - timer <= ret_time:
-                f.keep_depth(-2.5)
-                f.keep_angle(ang)
-            print("mode_14")
-            p += 1
-        elif p == 12:
-            while True:
-                f.keep_depth(-2.5)
-                f.keep_angle(ang)
+    while f.set_arrow(v, -2.5, orange) == -1:
+        f.keep_depth(-2.5)
+        f.keep_angle(ang)
+    f.set(mur.get_yaw(), -2.5, 30)
+    while f.set_stand(v, -2.2, orange) == -1:
+        f.keep_depth(-2.5)
+        f.keep_angle(ang)
+    f.set(depth = 0)
 
-                if not v.arrow(mur.get_image_bottom(), color_cube) is None:
-                    while f.set_arrow(v, a_height, color_cube) == -1:
-                        f.keep_depth(-2.5)
-                        f.keep_angle(ang)
-                    break
-            mur.open_grabber()
-            sleep(1)
-            f.set(0, -2.5)
-            while f.set_arrow(v, -2.5, orange) == -1:
-                pass
-            print(cubes)
-            p += 1
-        # yellow
-        elif p == 13:
-            ang = get_angle(position[3])
-            f.set(ang, -2.5, 30)
-            while True:
-                f.keep_depth(-2.5)
-                f.keep_angle(ang)
-                if v.stand(mur.get_image_bottom(), yellow):
-                    while f.set_stand(v, -2.7, yellow) == -1:
-                        pass
-                    f.set(mur.get_yaw(), -3.2)
-                    mur.open_grabber()
-                    p += 1
-                    break
-        elif p == 14:
-            color_cube = None
-            print("mode_10")
-            while color_cube is None:
-                for i in (red, green, blue):
-                    pos = v.obj(mur.get_image_bottom(), i)
-                    if not pos is None:
-                        color_cube = i
-                        cubes.append(color_cube)
-            while f.set_obj(v, -3, color_cube) == -1:
-                pass
-            print("mode_11")
-            f.set(mur.get_yaw(), -3.6)
-            mur.set_motor_power(0, -5)
-            mur.set_motor_power(1, -5)
-            time.sleep(0.5)
-            mur.close_grabber()
-            sleep(catch_time)
-            ang = rotate(get_angle(position[3]) - 180)
-            f.set(ang, -2.5, 15)
-            timer = time.time()
-            while time.time() - timer <= ret_time:
-                f.keep_depth(-2.5)
-                f.keep_angle(ang)
-            print("mode_14")
-            p += 1
-        elif p == 15:
-            while True:
-                f.keep_depth(-2.5)
-                f.keep_angle(ang)
 
-                if not v.arrow(mur.get_image_bottom(), color_cube) is None:
-                    while f.set_arrow(v, a_height, color_cube) == -1:
-                        f.keep_depth(-2.5)
-                        f.keep_angle(ang)
-                    break
-            mur.open_grabber()
-            sleep(1)
-            f.set(0, -2.5)
-            while f.set_arrow(v, -2.5, orange) == -1:
-                pass
-            print(cubes)
-            p += 1
+print((time.time() - start_time) / 60)
