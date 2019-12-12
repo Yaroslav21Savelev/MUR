@@ -569,7 +569,7 @@ if __name__ == '__main__':
                 f.set(mur.get_yaw(), -3.6)
                 time.sleep(0.7)
                 mur.close_grabber()
-                time.sleep(0.7)
+                time.sleep(1.2)
                 #sleep(catch_time)
                 ang = rotate(get_angle(position[now]) - 180)
                 f.set(ang, -2.7, 25)
