@@ -519,7 +519,7 @@ if __name__ == '__main__':
                 v.arrow(mur.get_image_bottom(), orange)
                 f.keep_depth(-2.5)
                 f.keep_angle(ang)
-            while f.set_arrow(v, -3, orange) == -1:
+            while f.set_arrow(v, -2.5, orange) == -1:
                 f.keep_depth(-2.5)
                 f.keep_angle(ang)
                 pass
@@ -529,13 +529,13 @@ if __name__ == '__main__':
                     while v.arrow(mur.get_image_bottom(), color) is None:
                         f.keep_depth(-2.5)
                         f.keep_angle(ang)
+                        sleep(0.1)
                     position.append(quarter(v.arrow(mur.get_image_bottom(), color)[1]))
                 print(position)
                 if len(set(position)) == len(position):
                     break
                 else:
                     position.clear()
-                sleep(0.1)
             break
     for now in range(4):
         p = 0
