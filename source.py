@@ -536,6 +536,7 @@ if __name__ == '__main__':
                     break
                 else:
                     position.clear()
+                
             break
     for now in range(4):
         p = 0
