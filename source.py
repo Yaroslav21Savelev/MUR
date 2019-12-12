@@ -130,7 +130,7 @@ class function():
         mur = self.mur
         res = self.res
         offset_timer = self.time()
-        offset = 10
+        offset = 14
         from time import sleep
         while True:
             pos = v.obj(mur.get_image_bottom(), hsv)
