@@ -117,9 +117,9 @@ class function():
             self.mur.set_motor_power(4, constrain(x_power, -20, 20))
             self.keep_depth(depth)
             sleep(0.1)
-            if abs(pos[0] - 160) > 15 or abs(pos[1] - 120) > 15 or abs(ang) > 3 or abs(self.mur.get_depth() + depth) > 0.05:
+            if abs(pos[0] - 160) > 22 or abs(pos[1] - 120) > 22 or abs(ang) > 3 or abs(self.mur.get_depth() + depth) > 0.05:
                     offset_timer = self.time()
-            if self.time() - offset_timer >= 1.2:
+            if self.time() - offset_timer >= 0.7:
                 self.mur.set_motor_power(0, 0)
                 self.mur.set_motor_power(1, 0)
                 self.mur.set_motor_power(2, 0)
@@ -138,22 +138,26 @@ class function():
 
             x_power = constrain(int(self.pid_bottom_x.update(pos[0] + x)), -20, 20)
             y_power = constrain(int(self.pid_bottom_y.update(pos[1] + y)), -20, 20)
+            
+            #print(out)
             #print(pos, ang)
             self.mur.set_motor_power(0, y_power)
             self.mur.set_motor_power(1, y_power)
             self.mur.set_motor_power(4, x_power)
             self.keep_depth(depth)
             sleep(0.1)
-            if abs(pos[0] - 160 + x) > 5 or abs(pos[1] - 120 + y) > 5 or abs(self.mur.get_depth() + depth) > 0.05:
+            if abs(pos[0] - 160 + x) > 4 or abs(pos[1] - 120 + y) > 6 or abs(self.mur.get_depth() + depth) > 0.05:
                     offset_timer = self.time()
-            if self.time() - offset_timer >= 1:
+
+            if self.time() - offset_timer >= 0.5:
                 self.mur.set_motor_power(0, 0)
                 self.mur.set_motor_power(1, 0)
                 self.mur.set_motor_power(2, 0)
                 self.mur.set_motor_power(3, 0)
                 self.mur.set_motor_power(4, 0)
                 return 0
-    def set_stand(self, v, depth, hsv):
+
+    def set_stand(self, v, depth, hsv, x = 0, y = 0, angle=None):
         mur = self.mur
         res = self.res
         offset_timer = self.time()
@@ -162,16 +166,23 @@ class function():
             pos = v.stand(mur.get_image_bottom(), hsv)
             if pos is None:
                 return -1
-            x_power = constrain(int(self.pid_bottom_x.update(pos[0])), -20, 20)
-            y_power = constrain(int(self.pid_bottom_y.update(pos[1])), -20, 20)
+            x_power = constrain(int(self.pid_bottom_x.update(pos[0] + x)), -20, 20)
+            y_power = constrain(int(self.pid_bottom_y.update(pos[1] + y)), -20, 20)
             #print(pos, ang)
-            self.mur.set_motor_power(0, y_power)
-            self.mur.set_motor_power(1, y_power)
+            out = 0
+            if not angle is None:
+                angle_l = rotate(mur.get_yaw() - angle)
+                out = int(self.pid_angle.update(angle_l))
+                if abs(abs(self.mur.get_yaw()) - abs(angle)) >= 2:
+                    offset_timer = self.time()
+            self.mur.set_motor_power(0, constrain(y_power + out, -30, 30))
+            self.mur.set_motor_power(1, constrain(y_power - out, -30, 30))
             self.mur.set_motor_power(4, x_power)
             self.keep_depth(depth)
-            sleep(0.1)
-            if abs(pos[0] - 160) > 20 or abs(pos[1] - 120) > 20 or abs(self.mur.get_depth() + depth) > 0.05:
+            
+            if abs(pos[0] - 160 + x) > 15 or abs(pos[1] - 120 + y) > 15 or abs(self.mur.get_depth() + depth) > 0.05:
                     offset_timer = self.time()
+            
             if self.time() - offset_timer >= 1:
                 self.mur.set_motor_power(0, 0)
                 self.mur.set_motor_power(1, 0)
@@ -179,6 +190,7 @@ class function():
                 self.mur.set_motor_power(3, 0)
                 self.mur.set_motor_power(4, 0)
                 return 0
+            sleep(0.1)
     def keep_depth(self, target):
         self.mur.get_image_bottom()
         if target is None:
@@ -195,8 +207,10 @@ class function():
             self.mur.set_motor_power(2, constrain(int(out), -100, 100))
             self.mur.set_motor_power(3, constrain(int(out), -100, 100))
             self.depth_timer = self.time()
-    def keep_angle(self, target, speed = 0):
+    def keep_angle(self, target, speed = None):
         self.mur.get_image_bottom()
+        if not speed is None:
+            self.speed = speed
         if target is None:
             mur.set_motor_power(0, 0)
             mur.set_motor_power(1, 0)
@@ -219,9 +233,9 @@ class function():
                 if abs(self.mur.get_depth() + depth) >= 0.05:
                     offset_timer = self.time()
             if not angle is None:
-                if abs(abs(self.mur.get_yaw()) - abs(angle)) >= 3:
+                if abs(abs(self.mur.get_yaw()) - abs(angle)) >= 5:
                     offset_timer = self.time()
-            if self.time() - offset_timer >= 1:
+            if self.time() - offset_timer >= 0.6:
                 break
             self.keep_angle(angle)
             self.keep_depth(depth)
@@ -464,7 +478,7 @@ if __name__ == '__main__':
     catch_time = 1
     ret_time = 9
     a_height = -3.3
-    t_speed = 48
+    t_speed = 55
     # r, g, b, y
     def get_color(index):
         if index == 0:
@@ -490,20 +504,20 @@ if __name__ == '__main__':
         #print(v.obj(mur.get_image_bottom(), yellow))
     '''
     colors = np.array([red, green, blue, yellow])
-    f.set(0, -2.5)
+    #f.set(0, -2.5)
     ang = 0
     color_cube = None
     ############### Start, get positions of stands
     ang = 0
-    f.set(ang, -2.5, 50)
+    #f.set(ang, -2.5, 65)
     timer = time.time()
     while time.time() - timer <= 5:
         v.arrow(mur.get_image_bottom(), orange)
         f.keep_depth(-2.5)
-        f.keep_angle(ang)
+        f.keep_angle(ang, 65)
     while f.set_arrow(v, -2.5, orange) == -1:
         f.keep_depth(-2.5)
-        f.keep_angle(ang)
+        f.keep_angle(ang, 65)
     while True:
         for c in colors:
             while v.arrow(mur.get_image_bottom(), c) is None:
@@ -524,7 +538,7 @@ if __name__ == '__main__':
         f.keep_depth(-2.5)
         f.keep_angle(ang)
         if v.stand(mur.get_image_bottom(), red):
-            while f.set_stand(v, -2.8, red) == -1:
+            while f.set_stand(v, -2.8, red, angle=0) == -1:
                 pass
             f.set(depth=-3.2)
             mur.open_grabber()
@@ -537,20 +551,20 @@ if __name__ == '__main__':
                 color_cube = i
     cubes = np.vstack((cubes, [color_cube]))
     print(cubes)
-    while f.set_obj(v, -3.2, color_cube, y = 15, x = 10) == -1:
+    while f.set_obj(v, -3.2, color_cube, y = 5, x = 15) == -1:
         pass
-    f.set(depth = -3.65)
+    f.set(depth = -3.62)
     time.sleep(0.7)
     mur.close_grabber()
     time.sleep(1.2)
     ang = nextDir(red, color_cube, position)
-    f.set(ang, -2.5, t_speed)
+    f.set(ang, -2.5, t_speed + 10)
     timer = time.time()
     while time.time() - timer <= 4:
         v.stand(mur.get_image_bottom(), color_cube)
         f.keep_depth(-2.5)
         f.keep_angle(ang)
-    
+    f.set(ang, -2.5, t_speed)
     ############################
     for j in range(3):
         last = color_cube
@@ -559,9 +573,9 @@ if __name__ == '__main__':
             f.keep_depth(-2.5)
             f.keep_angle(ang)
             if v.stand(mur.get_image_bottom(), last):
-                while f.set_stand(v, -2.8, last) == -1:
+                while f.set_stand(v, -2.8, last, angle=0) == -1:
                     pass
-                f.set(depth = -3.1)
+                f.set(depth = -3.2)
                 break
         while color_cube is None:
             for i in colors:
@@ -570,32 +584,33 @@ if __name__ == '__main__':
                     color_cube = i
         cubes = np.vstack((cubes, [color_cube]))
         print(cubes)
-        while f.set_obj(v, -3.1, color_cube, x = -80, y = 60) == -1:
+        while f.set_obj(v, -3.2, color_cube, x = -80, y = 60) == -1:
             pass
         f.set(depth = -3.55)
         mur.open_grabber()
         sleep(1)
-        f.set(depth = -3.1)
-        while f.set_obj(v, -3.1, color_cube, y = 15, x = 10) == -1:
+        f.set(depth = -3.2)
+        while f.set_obj(v, -3.2, color_cube, y = 5, x = 15) == -1:
             pass
-        f.set(depth = -3.65)
+        f.set(depth = -3.62)
         time.sleep(0.7)
         mur.close_grabber()
         time.sleep(1.2)
         ang = nextDir(last, color_cube, position)
-        f.set(ang, -2.5, t_speed)
+        f.set(ang, -2.5, t_speed + 10)
         timer = time.time()
-        while time.time() - timer <= 7:
+        while time.time() - timer <= 4:
             v.stand(mur.get_image_bottom(), color_cube)
             f.keep_depth(-2.5)
             f.keep_angle(ang)
+        f.set(ang, -2.5, t_speed)
     last = color_cube
     color_cube = None   
     while True:
         f.keep_depth(-2.5)
         f.keep_angle(ang)
         if v.stand(mur.get_image_bottom(), last):
-            while f.set_stand(v, -2.8, last) == -1:
+            while f.set_stand(v, -2.8, last, angle = 0) == -1:
                 pass
             f.set(depth=-3.55)
             mur.open_grabber()
@@ -614,7 +629,7 @@ if __name__ == '__main__':
         f.keep_depth(-2.5)
         f.keep_angle(ang)
     f.set(0, -2.5, t_speed)
-    while f.set_stand(v, -2.2, orange) == -1:
+    while f.set_stand(v, -2.2, orange, x = 0, y = -30, angle=0) == -1:
         f.keep_depth(-2.5)
         f.keep_angle(0)
     f.set(0, -0.05, 0)
