@@ -138,7 +138,6 @@ class function():
 
             x_power = constrain(int(self.pid_bottom_x.update(pos[0] + x)), -20, 20)
             y_power = constrain(int(self.pid_bottom_y.update(pos[1] + y)), -20, 20)
-            
             #print(out)
             #print(pos, ang)
             self.mur.set_motor_power(0, y_power)
@@ -249,7 +248,8 @@ class vision():
         self.cv = cv
         self.np = numpy
 
-    def obj(self, image, hsv):
+    def obj(self, image, hsv, corners = 4):
+        """if obj found, returns it's coordinates"""
         from math import pi
         np = self.np
         cv2 = self.cv
@@ -276,12 +276,13 @@ class vision():
                     continue
                 #angle - bEllipse[2]
                 
-                if len(hull) == 4:
+                if len(hull) == corners:
                     cv2.imshow('Mask', mask_)
                     cv2.waitKey(1)
                     return int(bEllipse[0][0]), int(bEllipse[0][1])
                 
     def arrow(self, image, hsv):
+        """if arrow found, returns it's coordinates"""
         np = self.np
         cv = self.cv
         hsv_l = hsv[0]
@@ -329,15 +330,18 @@ class vision():
         for cnt in contours:
             # find circle center
             (x,y),radius = cv.minEnclosingCircle(cnt)
-            circle_center = (x, y)
+            circle_center = (int(x), int(y))
             area = cv.contourArea(cnt)
-            #cv.circle(img, circle_center, int(radius), (128, 0, 128), 3)
+            
             if area != 0:
-                if radius * (pi ** 2) / area <= 0.15:
+                #print("J", ((pi * radius ** 2) / area))
+                if 0.9 <= ((pi * radius ** 2) / area) <= 4.5 :# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!change KOEFF
+                    cv.circle(img, circle_center, int(radius), (128, 0, 128), 3)
+                    cv.imshow("Img", img)
+                    cv.waitKey(1)
                     return circle_center
                 #print(circle_center)
-        #cv.imshow("Img", img)
-        #cv.waitKey(1)
+        
 def track(mur, f):
     global cv
     def nothing(self):
@@ -469,18 +473,7 @@ def nextDir(now, nex, positions):
             return -90
 
 
-if __name__ == '__main__':
-    start_time = time.time()
-    from time import sleep
-    from sys import exit
-    import numpy as np
-    
-    catch_time = 1
-    ret_time = 9
-    a_height = -3.3
-    t_speed = 55
-    # r, g, b, y
-    def get_color(index):
+def get_color(index):
         if index == 0:
             return red
         if index == 1:
@@ -489,24 +482,38 @@ if __name__ == '__main__':
             return blue
         if index == 3:
             return yellow
-    position = []
-    cubes = np.array([orange])
-    print(cubes)
+
+if __name__ == '__main__':
+    start_time = time.time()
+    from time import sleep
+    from sys import exit
+    import numpy as np
+    
+    catch_time = 1 #delay to catch obj
+    ret_time = 9 #delay to move without detecting
+    a_height = -3.3 
+    t_speed = 55 #travel speed
     mur = pymurapi.mur_init()
     f = function(mur)
     v = vision(cv)
+
+    #hsv setup
     #track(mur, f)
-    #print(dir(mur))
-    '''
-    while True:
-        f.keep_depth(-2.5)
-        print(v.get_corners(mur.get_image_bottom(), yellow))
-        #print(v.obj(mur.get_image_bottom(), yellow))
-    '''
+
+    # r, g, b, y
+
+    position = []
+    cubes = np.array([orange])
+    print(cubes)
     colors = np.array([red, green, blue, yellow])
-    #f.set(0, -2.5)
     ang = 0
     color_cube = None
+    """
+    #debug
+    while True:
+        f.keep_depth(-2.5)
+        print(v.stand(mur.get_image_bottom(), orange))
+    """
     ############### Start, get positions of stands
     ang = 0
     #f.set(ang, -2.5, 65)
@@ -531,7 +538,6 @@ if __name__ == '__main__':
         else:
             position.clear()
     ###############
-
     ang = get_angle(position[0])
     f.set(ang, -2.5, 50)
     while True:
@@ -617,7 +623,6 @@ if __name__ == '__main__':
             sleep(1)
             break
     f.set(depth = -2.5)
-
     ang = nextDir(last, orange, position)
     f.set(ang, -2.5, 30)
     timer = time.time()
@@ -634,3 +639,4 @@ if __name__ == '__main__':
         f.keep_angle(0)
     f.set(0, -0.05, 0)
 print((time.time() - start_time) / 60)
+open("logger.txt", "wr")
