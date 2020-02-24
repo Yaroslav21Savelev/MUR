@@ -335,7 +335,8 @@ class vision():
             
             if area != 0:
                 #print("J", ((pi * radius ** 2) / area))
-                if 0.9 <= ((pi * radius ** 2) / area) <= 4.5 :# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!change KOEFF
+                #print(radius)
+                if 0.9 <= ((pi * radius ** 2) / area) <= 4.5 and radius >= 25:# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!change KOEFF
                     cv.circle(img, circle_center, int(radius), (128, 0, 128), 3)
                     cv.imshow("Img", img)
                     cv.waitKey(1)
@@ -512,7 +513,7 @@ if __name__ == '__main__':
     #debug
     while True:
         f.keep_depth(-2.5)
-        print(v.stand(mur.get_image_bottom(), orange))
+        v.stand(mur.get_image_bottom(), orange)
     """
     ############### Start, get positions of stands
     ang = 0
